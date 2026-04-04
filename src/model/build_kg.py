@@ -2,14 +2,15 @@ import pandas as pd
 import networkx as nx
 from pyvis.network import Network
 import os
+import pickle
 
+#to create knowled graph
 def create_knowledge_graph(file_path):
     # Load the cleaned data
     df = pd.read_csv(file_path)
     
     # Initialize a Directed Graph
     G = nx.DiGraph()
-
     for _, row in df.iterrows():
         # 1. Get row values
         cat = str(row['category'])
@@ -111,6 +112,9 @@ if __name__ == "__main__":
     
     if os.path.exists(INPUT_FILE):
         kg = create_knowledge_graph(INPUT_FILE)
+
+        with open("knowledge_graph.pkl", "wb") as f:
+            pickle.dump(kg, f)
         visualize_graph(kg, OUTPUT_HTML)
     else:
         print("Cleaned dataset not found.")
