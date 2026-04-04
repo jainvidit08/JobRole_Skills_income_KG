@@ -1,0 +1,23 @@
+venv/
+.env/
+
+# 🔹 Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Data (VERY IMPORTANT for your case)
+data/
+*.csv
+
+models/
+*.pkl
+*.joblib
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
