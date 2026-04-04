@@ -1,0 +1,15 @@
+# Data Manipulation
+pandas>=2.2.0
+
+# Graph Theory and Logic
+networkx>=3.2.0
+
+# Visualization (Interactive HTML)
+pyvis>=0.3.2
+
+# Basic Plotting and Math
+matplotlib>=3.8.0
+numpy>=1.26.0
+
+# Development Tools
+ipykernel
