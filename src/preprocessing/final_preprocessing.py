@@ -80,11 +80,18 @@ def load_and_clean_data(file_path):
 if __name__ == "__main__":
     # Path to your data
     DATA_PATH = os.path.join('..','..', 'data', 'dataset.csv')
+    OUTPUT_PATH = os.path.join('..', '..', 'data', 'processed', 'cleaned_dataset.csv')
+
+    # Create folder if it doesn't exist
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     
     if os.path.exists(DATA_PATH):
         raw_df = load_and_clean_data(DATA_PATH)
         print("Initial Cleanup Complete.")
         print(f"Columns remaining: {list(raw_df.columns)}")
         print(raw_df.head(10))
+        # Save the DataFrame
+        raw_df.to_csv(OUTPUT_PATH, index=False)
+        print(f"Cleaned dataset saved at: {OUTPUT_PATH}")
     else:
         print(f"Error: Could not find file at {DATA_PATH}. Please check your data folder.")
