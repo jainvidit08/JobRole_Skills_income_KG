@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KG Multi-Hop Recommender</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #1a1a4e, #24243e);
+            background-size: 400% 400%;
+            animation: gradientShift 18s ease infinite;
+            color: white;
+            padding: 2rem 1rem;
+        }
+
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+            color: #c8b8ff;
+        }
+
+        .subtitle {
+            font-size: 0.78rem;
+            opacity: 0.55;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 1.8rem;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            padding: 2rem 2rem 1.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* ---- Query Type Selector (pill tabs) ---- */
+        .query-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.6);
+            padding: 9px 8px;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .tab-btn:hover {
+            background: rgba(200,184,255,0.12);
+            color: #c8b8ff;
+            border-color: rgba(200,184,255,0.3);
+        }
+
+        .tab-btn.active {
+            background: rgba(200,184,255,0.18);
+            color: #c8b8ff;
+            border-color: rgba(200,184,255,0.5);
+            font-weight: 700;
+        }
+
+        .tab-btn .relation-tag {
+            display: block;
+            font-size: 0.62rem;
+            opacity: 0.6;
+            margin-top: 2px;
+            letter-spacing: 0.8px;
+        }
+
+        /* ---- Two-input layout ---- */
+        .inputs-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.68rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            opacity: 0.5;
+            padding-left: 2px;
+        }
+
+        .input-group input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .input-group input::placeholder { opacity: 0.4; }
+        .input-group input:focus { border-color: rgba(200,184,255,0.5); }
+
+        /* ---- Custom mode selects ---- */
+        .custom-selects {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .custom-selects.visible { display: grid; }
+
+        .input-group select {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .input-group select option { background: #24243e; color: white; }
+        .input-group select:focus { border-color: rgba(200,184,255,0.5); }
+
+        /* ---- Submit button ---- */
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(200,184,255,0.25), rgba(100,120,255,0.2));
+            border: 1px solid rgba(200,184,255,0.35);
+            color: white;
+            border-radius: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 1.2rem;
+        }
+
+        button#searchBtn:hover {
+            background: linear-gradient(135deg, rgba(200,184,255,0.38), rgba(100,120,255,0.32));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(200,184,255,0.2);
+        }
+
+        button#searchBtn:active { transform: translateY(0); }
+
+        /* ---- Results ---- */
+        #results {
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #results.has-content { display: block; }
+
+        .results-label {
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 6px;
+            animation: fadeIn 0.3s ease both;
+        }
+
+        .result-item:nth-child(1) { animation-delay: 0.05s; }
+        .result-item:nth-child(2) { animation-delay: 0.10s; }
+        .result-item:nth-child(3) { animation-delay: 0.15s; }
+        .result-item:nth-child(4) { animation-delay: 0.20s; }
+        .result-item:nth-child(5) { animation-delay: 0.25s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-name { font-size: 0.9rem; font-weight: 500; }
+
+        .result-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            background: rgba(200,184,255,0.15);
+            border: 1px solid rgba(200,184,255,0.25);
+            border-radius: 20px;
+            color: #c8b8ff;
+            white-space: nowrap;
+        }
+
+        .top-result {
+            background: rgba(200,184,255,0.12);
+            border-color: rgba(200,184,255,0.3);
+        }
+
+        .top-result .result-name::before {
+            content: "★ ";
+            color: #c8b8ff;
+        }
+
+        .status-msg {
+            font-size: 0.82rem;
+            opacity: 0.55;
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        /* ---- Scrollbar ---- */
+        #results::-webkit-scrollbar { width: 4px; }
+        #results::-webkit-scrollbar-track { background: transparent; }
+        #results::-webkit-scrollbar-thumb { background: rgba(200,184,255,0.3); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <h1>Multi-Hop Query</h1>
+    <p class="subtitle">Knowledge Graph · Two-Signal Prediction</p>
+
+    <!-- Query Type Tabs -->
+    <div class="query-tabs">
+        <button class="tab-btn active" data-mode="1" onclick="selectMode(this)">
+            Income Prediction
+            <span class="relation-tag">Category + Experience</span>
+        </button>
+        <button class="tab-btn" data-mode="2" onclick="selectMode(this)">
+            Income Prediction
+            <span class="relation-tag">Skill + Education</span>
+        </button>
+        <button class="tab-btn" data-mode="3" onclick="selectMode(this)">
+            Job Recommendation
+            <span class="relation-tag">Skill + Education</span>
+        </button>
+        <button class="tab-btn" data-mode="4" onclick="selectMode(this)">
+            Custom Query
+            <span class="relation-tag">Manual Relations</span>
+        </button>
+    </div>
+
+    <!-- Standard Two-Input Row -->
+    <div class="inputs-row" id="standardInputs">
+        <div class="input-group">
+            <label id="label1">Category</label>
+            <input type="text" id="input1" list="suggestions1" placeholder="e.g. DevOps">
+            <datalist id="suggestions1"></datalist>
+        </div>
+        <div class="input-group">
+            <label id="label2">Experience</label>
+            <input type="text" id="input2" list="suggestions2" placeholder="e.g. senior">
+            <datalist id="suggestions2"></datalist>
+        </div>
+    </div>
+
+    <!-- Custom Mode: Relation Selectors -->
+    <div class="custom-selects" id="customSelects">
+        <div class="input-group">
+            <label>Relation 1</label>
+            <select id="rel1Select">
+                <option value="PART_OF">PART_OF</option>
+                <option value="PAYS">PAYS</option>
+                <option value="EARNS">EARNS</option>
+                <option value="PAYS_DIRECT">PAYS_DIRECT</option>
+                <option value="RESULT_IN">RESULT_IN</option>
+                <option value="QUALIFIES_FOR">QUALIFIES_FOR</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Relation 2</label>
+            <select id="rel2Select">
+                <option value="EARNS">EARNS</option>
+                <option value="PART_OF">PART_OF</option>
+                <option value="PAYS">PAYS</option>
+                <option value="PAYS_DIRECT">PAYS_DIRECT</option>
+                <option value="RESULT_IN">RESULT_IN</option>
+                <option value="QUALIFIES_FOR">QUALIFIES_FOR</option>
+            </select>
+        </div>
+    </div>
+
+    <button id="searchBtn" onclick="fetchMultiHop()">Run Query</button>
+
+    <div id="results"></div>
+    <form action="./index_single.html">
+        <button>Single Hop Query</button>
+    </form>
+</div>
+
+<script>
+    // ─── State ───────────────────────────────────────────────────────────────
+    let kgMetadata = {};
+    let currentMode = 1;
+
+    // Maps each mode to: labels, placeholder text, suggestion data keys, relation strings
+    const modeConfig = {
+        1: {
+            label1: "Category",   ph1: "e.g. DevOps",  key1: "categories",
+            label2: "Experience", ph2: "e.g. senior",  key2: "experience",
+            rel1: "PAYS",  rel2: "EARNS"
+        },
+        2: {
+            label1: "Skill",     ph1: "e.g. Python",  key1: "skills",
+            label2: "Education", ph2: "e.g. Master",  key2: "education",
+            rel1: "PAYS_DIRECT", rel2: "RESULT_IN"
+        },
+        3: {
+            label1: "Skill",     ph1: "e.g. Python",  key1: "skills",
+            label2: "Education", ph2: "e.g. Master",  key2: "education",
+            rel1: "PART_OF", rel2: "QUALIFIES_FOR"
+        },
+        4: {
+            label1: "Node 1",    ph1: "Any KG node",  key1: null,
+            label2: "Node 2",    ph2: "Any KG node",  key2: null,
+            rel1: null, rel2: null   // taken from selects
+        }
+    };
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    window.onload = async () => {
+        try {
+            const res = await fetch('http://localhost:8000/metadata');
+            kgMetadata = await res.json();
+        } catch (e) {
+            console.error("Could not load metadata:", e);
+        }
+        applyModeConfig();
+    };
+
+    // ─── Tab Selection ────────────────────────────────────────────────────────
+    function selectMode(btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = parseInt(btn.dataset.mode);
+
+        clearResults();
+        document.getElementById('input1').value = '';
+        document.getElementById('input2').value = '';
+        applyModeConfig();
+    }
+
+    function applyModeConfig() {
+        const cfg = modeConfig[currentMode];
+        const isCustom = currentMode === 4;
+
+        // Toggle custom relation selects
+        document.getElementById('customSelects').classList.toggle('visible', isCustom);
+
+        // Update labels and placeholders
+        document.getElementById('label1').textContent = cfg.label1;
+        document.getElementById('label2').textContent = cfg.label2;
+        document.getElementById('input1').placeholder = cfg.ph1;
+        document.getElementById('input2').placeholder = cfg.ph2;
+
+        // Update datalist suggestions
+        populateSuggestions('suggestions1', cfg.key1);
+        populateSuggestions('suggestions2', cfg.key2);
+    }
+
+    function populateSuggestions(datalistId, metaKey) {
+        const dl = document.getElementById(datalistId);
+        if (!metaKey || !kgMetadata[metaKey] || kgMetadata[metaKey].length === 0) {
+            dl.innerHTML = '';
+            return;
+        }
+        dl.innerHTML = kgMetadata[metaKey].map(v => `<option value="${v}">`).join('');
+    }
+
+    // ─── Query ────────────────────────────────────────────────────────────────
+    async function fetchMultiHop() {
+        const n1  = document.getElementById('input1').value.trim();
+        const n2  = document.getElementById('input2').value.trim();
+        const cfg = modeConfig[currentMode];
+
+        if (!n1 || !n2) {
+            showStatus("Please fill in both fields.");
+            return;
+        }
+
+        const rel1 = currentMode === 4
+            ? document.getElementById('rel1Select').value
+            : cfg.rel1;
+        const rel2 = currentMode === 4
+            ? document.getElementById('rel2Select').value
+            : cfg.rel2;
+
+        showStatus("Traversing graph…");
+
+        try {
+            const url = `http://localhost:8000/multihop?node1=${encodeURIComponent(n1)}&rel1=${rel1}&node2=${encodeURIComponent(n2)}&rel2=${rel2}`;
+            const res  = await fetch(url);
+            const data = await res.json();
+
+            if (data.error || !Array.isArray(data) || data.length === 0) {
+                showStatus("No results found. Check spelling or try a different combination.");
+                return;
+            }
+
+            renderResults(data);
+        } catch (e) {
+            showStatus("Error connecting to backend.");
+        }
+    }
+
+    // ─── Rendering ────────────────────────────────────────────────────────────
+    function renderResults(data) {
+        const div = document.getElementById('results');
+        div.className = 'has-content';
+        div.innerHTML = `<div class="results-label">Results · ranked by confidence</div>` +
+            data.map((item, i) => `
+                <div class="result-item ${i === 0 ? 'top-result' : ''}">
+                    <span class="result-name">${item.name}</span>
+                    <span class="result-badge">Score ${item.weight}</span>
+                </div>
+            `).join('');
+    }
+
+    function showStatus(msg) {
+        const div = document.getElementById('results');
+        div.className = 'has-content';
+        div.innerHTML = `<div class="status-msg">${msg}</div>`;
+    }
+
+    function clearResults() {
+        const div = document.getElementById('results');
+        div.className = '';
+        div.innerHTML = '';
+    }
+</script>
+</body>
+</html>

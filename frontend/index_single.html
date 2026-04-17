@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KG Recommender</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #1a1a4e, #24243e);
+            background-size: 400% 400%;
+            animation: gradientShift 18s ease infinite;
+            color: white;
+            padding: 2rem 1rem;
+        }
+
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+            color: #8be0d4;
+        }
+
+        .subtitle {
+            font-size: 0.78rem;
+            opacity: 0.55;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 1.8rem;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            padding: 2rem 2rem 1.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        /* ── Query type tabs ── */
+        .query-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 1.4rem;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.6);
+            padding: 9px 8px;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .tab-btn:hover {
+            background: rgba(139,224,212,0.12);
+            color: #8be0d4;
+            border-color: rgba(139,224,212,0.3);
+        }
+
+        .tab-btn.active {
+            background: rgba(139,224,212,0.18);
+            color: #8be0d4;
+            border-color: rgba(139,224,212,0.5);
+            font-weight: 700;
+        }
+
+        .tab-btn .relation-tag {
+            display: block;
+            font-size: 0.62rem;
+            opacity: 0.6;
+            margin-top: 2px;
+            letter-spacing: 0.8px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* ── Input ── */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            font-size: 0.68rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            opacity: 0.5;
+            padding-left: 2px;
+        }
+
+        .input-group input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: white;
+            padding: 11px 14px;
+            border-radius: 9px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .input-group input::placeholder { opacity: 0.4; }
+        .input-group input:focus { border-color: rgba(139,224,212,0.5); }
+
+        /* ── Button ── */
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(139,224,212,0.22), rgba(35,166,213,0.18));
+            border: 1px solid rgba(139,224,212,0.35);
+            color: white;
+            border-radius: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 1.2rem;
+        }
+
+        button#searchBtn:hover {
+            background: linear-gradient(135deg, rgba(139,224,212,0.34), rgba(35,166,213,0.28));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(139,224,212,0.2);
+        }
+
+        button#searchBtn:active { transform: translateY(0); }
+
+        /* ── Results ── */
+        #results {
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #results.has-content { display: block; }
+
+        .results-label {
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 6px;
+            animation: fadeIn 0.3s ease both;
+        }
+
+        .result-item:nth-child(2) { animation-delay: 0.05s; }
+        .result-item:nth-child(3) { animation-delay: 0.10s; }
+        .result-item:nth-child(4) { animation-delay: 0.15s; }
+        .result-item:nth-child(5) { animation-delay: 0.20s; }
+        .result-item:nth-child(6) { animation-delay: 0.25s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-name { font-size: 0.9rem; font-weight: 500; }
+
+        .result-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            background: rgba(139,224,212,0.12);
+            border: 1px solid rgba(139,224,212,0.25);
+            border-radius: 20px;
+            color: #8be0d4;
+            white-space: nowrap;
+        }
+
+        .top-result {
+            background: rgba(139,224,212,0.1);
+            border-color: rgba(139,224,212,0.3);
+        }
+
+        .top-result .result-name::before {
+            content: "★ ";
+            color: #8be0d4;
+        }
+
+        .status-msg {
+            font-size: 0.82rem;
+            opacity: 0.55;
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        #results::-webkit-scrollbar { width: 4px; }
+        #results::-webkit-scrollbar-track { background: transparent; }
+        #results::-webkit-scrollbar-thumb { background: rgba(139,224,212,0.3); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <h1>Single-Hop Query</h1>
+    <p class="subtitle">Knowledge Graph · Direct Relation Lookup</p>
+
+    <!-- Query type tabs -->
+    <div class="query-tabs">
+        <button class="tab-btn active" data-mode="skills_cat" onclick="selectMode(this)">
+            Skills for Category
+            <span class="relation-tag">PART_OF</span>
+        </button>
+        <button class="tab-btn" data-mode="income_skill" onclick="selectMode(this)">
+            Income for Skill
+            <span class="relation-tag">PAYS_DIRECT</span>
+        </button>
+        <button class="tab-btn" data-mode="cat_edu" onclick="selectMode(this)">
+            Categories for Education
+            <span class="relation-tag">QUALIFIES_FOR</span>
+        </button>
+        <button class="tab-btn" data-mode="inc_cat" onclick="selectMode(this)">
+            Income for Category
+            <span class="relation-tag">PAYS</span>
+        </button>
+        <button class="tab-btn" data-mode="inc_exp" onclick="selectMode(this)">
+            Income for Experience
+            <span class="relation-tag">EARNS</span>
+        </button>
+        <button class="tab-btn" data-mode="inc_edu" onclick="selectMode(this)">
+            Income for Education
+            <span class="relation-tag">RESULT_IN</span>
+        </button>
+    </div>
+
+    <!-- Single input -->
+    <div class="input-group">
+        <label id="inputLabel">Category</label>
+        <input type="text" id="userInput" list="suggestions" placeholder="e.g. DevOps">
+        <datalist id="suggestions"></datalist>
+    </div>
+
+    <button id="searchBtn" onclick="fetchData()">Get Recommendations</button>
+
+    <div id="results"></div>
+    <form action="./index_multi.html">
+        <button>Multi Hop Query</button>
+    </form>
+</div>
+
+<script>
+    // ─── Config ───────────────────────────────────────────────────────────────
+    const modeConfig = {
+        skills_cat:   { label: "Category",        ph: "e.g. DevOps",   metaKey: "categories", relation: "PART_OF",      direction: "in"  },
+        income_skill: { label: "Skill",            ph: "e.g. Python",   metaKey: "skills",      relation: "PAYS_DIRECT",  direction: "out" },
+        cat_edu:      { label: "Education Level",  ph: "e.g. Master",   metaKey: "education",   relation: "QUALIFIES_FOR",direction: "out" },
+        inc_cat:      { label: "Category",         ph: "e.g. DevOps",   metaKey: "categories",  relation: "PAYS",         direction: "out" },
+        inc_exp:      { label: "Experience Level", ph: "e.g. senior",   metaKey: "experience",  relation: "EARNS",        direction: "out" },
+        inc_edu:      { label: "Education Level",  ph: "e.g. Master",   metaKey: "education",   relation: "RESULT_IN",    direction: "out" },
+    };
+
+    let kgMetadata = {};
+    let currentMode = "skills_cat";
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    window.onload = async () => {
+        try {
+            const res = await fetch('http://localhost:8000/metadata');
+            kgMetadata = await res.json();
+        } catch (e) {
+            console.error("Could not load metadata:", e);
+        }
+        applyMode();
+    };
+
+    // ─── Tab selection ────────────────────────────────────────────────────────
+    function selectMode(btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        document.getElementById('userInput').value = '';
+        clearResults();
+        applyMode();
+    }
+
+    function applyMode() {
+        const cfg = modeConfig[currentMode];
+        document.getElementById('inputLabel').textContent = cfg.label;
+        document.getElementById('userInput').placeholder = cfg.ph;
+
+        const dl = document.getElementById('suggestions');
+        const list = kgMetadata[cfg.metaKey] || [];
+        dl.innerHTML = list.map(v => `<option value="${v}">`).join('');
+    }
+
+    // ─── Query ────────────────────────────────────────────────────────────────
+    async function fetchData() {
+        const val = document.getElementById('userInput').value.trim();
+        if (!val) { showStatus("Please enter a search term."); return; }
+
+        const { relation, direction } = modeConfig[currentMode];
+        showStatus("Searching…");
+
+        try {
+            const url = `http://localhost:8000/query?node=${encodeURIComponent(val)}&relation=${relation}&direction=${direction}`;
+            const res  = await fetch(url);
+            const data = await res.json();
+
+            if (data.error || !Array.isArray(data) || data.length === 0) {
+                showStatus("No data found. Check your spelling!");
+                return;
+            }
+            renderResults(data);
+        } catch (e) {
+            showStatus("Error connecting to backend.");
+        }
+    }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+    function renderResults(data) {
+        const div = document.getElementById('results');
+        div.className = 'has-content';
+        div.innerHTML = `<div class="results-label">Results · ranked by score</div>` +
+            data.map((item, i) => `
+                <div class="result-item ${i === 0 ? 'top-result' : ''}">
+                    <span class="result-name">${item.name}</span>
+                    <span class="result-badge">Score ${item.weight}</span>
+                </div>
+            `).join('');
+    }
+
+    function showStatus(msg) {
+        const div = document.getElementById('results');
+        div.className = 'has-content';
+        div.innerHTML = `<div class="status-msg">${msg}</div>`;
+    }
+
+    function clearResults() {
+        const div = document.getElementById('results');
+        div.className = '';
+        div.innerHTML = '';
+    }
+</script>
+</body>
+</html>
